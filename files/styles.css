@@ -1,0 +1,908 @@
+/* ==========================================================================
+   lili.makes – hand-drawn shelf showcase
+   Sections: 1 Tokens · 2 Base · 3 Header · 4 Wall and shelves · 5 Drawings
+             6 Pieces · 7 Photo frames · 8 List view · 9 Buttons
+             10 Detail panel · 11 Cart drawer · 12 Accessibility
+   ========================================================================== */
+
+
+/* 1. Tokens
+   ========================================================================== */
+
+:root {
+  /* Colour: marker ink on paper, with one highlighter yellow */
+  --paper: #f5f5f1;
+  --ink: #161616;
+  --ink-soft: rgba(22, 22, 22, 0.65);
+  --line: rgba(22, 22, 22, 0.25);
+  --highlight: #ffe27a;
+
+  /* Type: system fonts only, so the site loads fast inside mainland China.
+     To use your own handwriting, add a self-hosted font file and put it first
+     in --font-hand. */
+  --font-hand: "Bradley Hand", "Segoe Print", "Marker Felt", "Chalkboard SE", "Kaiti SC", "KaiTi", cursive;
+  --font-sans: system-ui, -apple-system, "PingFang SC", "Noto Sans SC", "Segoe UI", sans-serif;
+
+  /* Wall sizing (pixels, so the shelves and the things on them stay in step) */
+  --unit: 150px;                  /* base width of one object */
+  --wall-width: 1600px;
+  --wall-height: 1800px;
+  --shelf-thickness: 3px;
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (max-width: 600px) {
+  :root {
+    --unit: 120px;
+  }
+}
+
+
+/* 2. Base
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+
+/* 3. Header
+   ========================================================================== */
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 2rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+@media (max-width: 700px) {
+  .site-header {
+    gap: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .site-header__actions {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+
+  .site-header__intro {
+    max-width: 100%;
+    font-size: 0.85rem;
+  }
+}
+
+.brand {
+  font-family: var(--font-hand);
+  font-size: 2rem;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.site-header__intro {
+  flex: 1 1 16rem;
+  max-width: 40ch;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.view-toggle {
+  display: flex;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+}
+
+.view-toggle__button {
+  padding: 0.25rem 0.9rem;
+  border: 0;
+  background: transparent;
+  font-size: 0.9rem;
+}
+
+.view-toggle__button.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.cart-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.9rem;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  background: transparent;
+  font-size: 0.9rem;
+}
+
+.cart-button:hover {
+  background: var(--highlight);
+}
+
+.cart-count {
+  min-width: 1.5rem;
+  padding: 0 0.35rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  text-align: center;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.cart-count.has-items {
+  background: var(--highlight);
+}
+
+
+/* 4. Wall and shelves
+   ========================================================================== */
+
+.scene {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;           /* hide scrollbars; dragging is the cue */
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+.scene::-webkit-scrollbar {
+  display: none;
+}
+
+.scene.is-dragging {
+  cursor: grabbing;
+}
+
+.wall {
+  position: relative;
+  width: var(--wall-width);
+  height: var(--wall-height);
+  margin: 0 auto;
+  display: block;
+}
+
+.wall__shelves,
+.wall__items {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A shelf board with two little brackets, drawn by script.js */
+.shelf {
+  position: absolute;
+  left: calc(var(--x) * 1px);
+  top: calc(var(--y) * 1px - 2px);
+}
+
+.shelf svg {
+  display: block;
+  overflow: visible;
+  filter: url(#wobble);
+}
+
+/* Handwritten notes on the wall */
+.wall-note {
+  position: absolute;
+  left: calc(var(--x) * 1px);
+  top: calc(var(--y) * 1px);
+  max-width: 14ch;
+  margin: 0;
+  font-family: var(--font-hand);
+  font-size: 1.7rem;
+  line-height: 1.25;
+  rotate: var(--tilt, 0deg);
+}
+
+/* Every item stands on a shelf: --x is its centre, --y the line it stands on */
+.wall__item {
+  position: absolute;
+  left: calc(var(--x) * 1px);
+  top: calc(var(--y) * 1px);
+  transform: translate(-50%, -100%);
+}
+
+.wall__item--decor {
+  pointer-events: none;
+}
+
+.scene__message {
+  padding: 2rem 1.5rem;
+}
+
+
+/* 5. Drawings (the line-art objects)
+   ========================================================================== */
+
+.drawing {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  filter: url(#wobble);
+}
+
+/* non-scaling-stroke keeps the marker line the same thickness at any size */
+.ink,
+.ink-line,
+.ink-dot {
+  vector-effect: non-scaling-stroke;
+  stroke: var(--ink);
+  stroke-width: var(--stroke, 3px);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ink {
+  fill: var(--paper);
+}
+
+.ink-line {
+  fill: none;
+}
+
+.ink-dot {
+  fill: var(--ink);
+}
+
+/* A light wash of the glaze colour inside the outline (ignored by old browsers) */
+.glaze {
+  fill: color-mix(in srgb, var(--glaze) 45%, var(--paper));
+}
+
+.piece__image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+
+/* 6. Pieces (the things you can click)
+   ========================================================================== */
+
+.piece {
+  position: relative;
+  display: block;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.piece__object {
+  display: block;
+  width: calc(var(--size) * var(--unit));
+  transition: transform 0.25s var(--ease-out);
+}
+
+.piece__label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  z-index: 2;
+  translate: -50% 12px;
+  padding: 0.1rem 0.4rem;
+  background: var(--paper);
+  text-align: center;
+  white-space: nowrap;
+  font-family: var(--font-hand);
+  font-size: 1.15rem;
+  line-height: 1.3;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.piece__name {
+  background: linear-gradient(transparent 55%, var(--highlight) 55%);
+}
+
+.piece__price {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.piece:focus-visible .piece__label {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .piece:hover .piece__object {
+    transform: translateY(-10px) rotate(-2deg);
+  }
+
+  .piece:hover .piece__label {
+    opacity: 1;
+  }
+}
+
+
+/* 7. Photo frames
+   Each frame is a spot for a photo. Add the photo in script.js.
+   ========================================================================== */
+
+.frame {
+  position: relative;
+  display: block;
+  width: calc(var(--w) * 1px);
+  height: calc(var(--h) * 1px);
+  padding: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* The wobbly outer border (drawn on a pseudo-element so photos stay sharp) */
+.frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--ink);
+  border-radius: 3px;
+  background: var(--paper);
+  filter: url(#wobble);
+}
+
+.frame__photo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.frame__photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--ink);
+  filter: url(#wobble);
+  pointer-events: none;
+}
+
+.frame__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.frame__caption {
+  padding: 0.5rem;
+  text-align: center;
+  font-family: var(--font-hand);
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+
+
+/* 8. List view (all pieces in a plain grid)
+   ========================================================================== */
+
+[data-view="list"] .scene {
+  cursor: auto;
+}
+
+[data-view="list"] .wall {
+  width: auto;
+  height: auto;
+}
+
+[data-view="list"] .wall__shelves {
+  display: none;
+}
+
+[data-view="list"] .wall__items {
+  position: static;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 3rem 1.5rem;
+  padding: 2rem 1.5rem 4rem;
+}
+
+[data-view="list"] .wall__item {
+  position: static;
+  transform: none;
+  justify-self: center;
+  padding-bottom: 3.5rem;       /* room for the label */
+}
+
+[data-view="list"] .wall__item--decor,
+[data-view="list"] .wall__item--frame {
+  display: none;
+}
+
+[data-view="list"] .piece__label {
+  opacity: 1;
+}
+
+
+/* 9. Buttons
+   ========================================================================== */
+
+.button {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  background: var(--ink);
+  color: var(--paper);
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.button--quiet {
+  background: transparent;
+  color: var(--ink);
+}
+
+.button:hover {
+  background: var(--highlight);
+  color: var(--ink);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.button:disabled:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+
+/* 10. Detail panel
+   ========================================================================== */
+
+.detail {
+  width: min(960px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  overflow: auto;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.detail[open] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  animation: panel-in 0.25s var(--ease-out);
+}
+
+.detail::backdrop {
+  background: rgba(22, 22, 22, 0.55);
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.detail__close,
+.cart__close {
+  padding: 0.2rem 0.85rem;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper);
+}
+
+.detail__close:hover,
+.cart__close:hover {
+  background: var(--highlight);
+}
+
+.detail__close {
+  position: absolute;
+  top: 0.9rem;
+  right: 1rem;
+  z-index: 1;
+}
+
+/* Left column: the photo, or the drawing until a photo exists */
+.detail__media {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1rem;
+  min-height: 320px;
+  padding: 3rem 2rem 2rem;
+  border-right: 2px solid var(--ink);
+}
+
+.detail__image {
+  width: min(100%, 320px);
+  --stroke: 4px;
+}
+
+.detail__image img,
+.detail__image .drawing {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.detail__thumbs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.detail__thumbs:empty {
+  display: none;
+}
+
+.thumb {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper);
+}
+
+.thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Right column: the words */
+.detail__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 3rem 2.5rem 1.75rem;
+}
+
+.status {
+  margin: 0;
+  padding: 0 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-family: var(--font-hand);
+  font-size: 1rem;
+}
+
+.detail__title {
+  margin: 0;
+  font-family: var(--font-hand);
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.detail__title-zh {
+  margin: -0.5rem 0 0;
+  font-family: var(--font-hand);
+  font-size: 1.15rem;
+  color: var(--ink-soft);
+}
+
+.detail__price {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.detail__story {
+  max-width: 50ch;
+  margin: 0;
+}
+
+.specs {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1.5rem;
+  width: 100%;
+  margin: 0;
+  padding-top: 0.9rem;
+  border-top: 2px solid var(--ink);
+  font-size: 0.95rem;
+}
+
+.specs dt {
+  color: var(--ink-soft);
+}
+
+.specs dd {
+  margin: 0;
+}
+
+.note {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  font-size: 0.95rem;
+}
+
+.note input {
+  padding: 0.5rem 0.7rem;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper);
+}
+
+.detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.detail__added {
+  min-height: 1.6em;
+  margin: -0.3rem 0 0;
+  font-family: var(--font-hand);
+  font-size: 1.1rem;
+}
+
+.detail__added:not(:empty) {
+  background: linear-gradient(transparent 55%, var(--highlight) 55%);
+}
+
+.detail__nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 2px solid var(--ink);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 760px) {
+  .detail[open] {
+    grid-template-columns: 1fr;
+  }
+
+  .detail__media {
+    min-height: 240px;
+    padding: 3.5rem 1.5rem 1.5rem;
+    border-right: 0;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .detail__body {
+    padding: 1.5rem 1.5rem 1.25rem;
+  }
+}
+
+
+/* 11. Cart drawer
+   ========================================================================== */
+
+.cart {
+  width: min(420px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: none;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-left: 3px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.cart[open] {
+  display: flex;
+  flex-direction: column;
+  animation: drawer-in 0.25s var(--ease-out);
+}
+
+.cart::backdrop {
+  background: rgba(22, 22, 22, 0.55);
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+}
+
+.cart__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+.cart__title {
+  margin: 0;
+  font-family: var(--font-hand);
+  font-size: 1.8rem;
+  font-weight: 400;
+}
+
+.cart__empty {
+  margin: 0;
+  padding: 1.5rem 1.25rem;
+}
+
+.cart__lines {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.cart-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.25rem 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.cart-line__name {
+  margin: 0;
+  font-family: var(--font-hand);
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.cart-line__note {
+  grid-column: 1;
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.cart-line__price {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.cart-line__controls {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.qty {
+  display: inline-flex;
+  align-items: center;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+}
+
+.qty button {
+  width: 2rem;
+  border: 0;
+  background: transparent;
+}
+
+.qty button:hover:not(:disabled) {
+  background: var(--highlight);
+}
+
+.qty button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.qty span {
+  min-width: 2rem;
+  text-align: center;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-decoration: underline;
+}
+
+.cart__footer {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 1.25rem;
+  border-top: 2px solid var(--ink);
+}
+
+.cart__total {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.cart__footer .button {
+  text-align: center;
+}
+
+.cart__note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+
+/* 12. Accessibility
+   ========================================================================== */
+
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.scene:focus-visible {
+  outline-offset: -6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

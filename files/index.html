@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>lili.makes</title>
+  <meta name="description" content="Handmade ceramics by lili.makes. Look around the shelves and pick up anything you like.">
+
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+
+<body data-view="shelf">
+
+  <!-- Shared filter that makes every line wobble slightly, like a marker drawing -->
+  <svg width="0" height="0" aria-hidden="true" focusable="false" style="position: absolute">
+    <filter id="wobble">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="4" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3"/>
+    </filter>
+  </svg>
+
+  <!-- Header: name, one line of instruction, view switch, cart -->
+  <header class="site-header">
+    <a class="brand" href="#/">lili.makes</a>
+
+    <p class="site-header__intro">Drag to look around. Click anything on the shelves to see it up close.</p>
+
+    <div class="site-header__actions">
+      <div class="view-toggle" role="group" aria-label="Browse as">
+        <button type="button" class="view-toggle__button is-active" data-view="shelf" aria-pressed="true">Shelves</button>
+        <button type="button" class="view-toggle__button" data-view="list" aria-pressed="false">All pieces</button>
+      </div>
+
+      <button type="button" class="cart-button" id="cart-button">
+        Cart <span class="cart-count" id="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- The wall. script.js draws the shelves, notes, frames and pieces into it. -->
+  <main class="scene" id="scene" tabindex="0" aria-label="Shelves of ceramics. Use the arrow keys to look around.">
+    <div class="wall" id="wall">
+      <div class="wall__shelves" id="shelves" aria-hidden="true"></div>
+      <ul class="wall__items" id="items"></ul>
+    </div>
+    <noscript><p class="scene__message">This page needs JavaScript to show the shelves.</p></noscript>
+  </main>
+
+  <!-- Piece detail. <dialog> gives us focus trapping and the Esc key for free. -->
+  <dialog class="detail" id="detail" aria-labelledby="detail-title">
+    <button type="button" class="detail__close" id="detail-close">Close</button>
+
+    <div class="detail__media">
+      <div class="detail__image" id="detail-image"></div>
+      <div class="detail__thumbs" id="detail-thumbs"></div>
+    </div>
+
+    <div class="detail__body">
+      <p class="status" id="detail-status"></p>
+      <h2 class="detail__title" id="detail-title"></h2>
+      <p class="detail__title-zh" id="detail-title-zh" lang="zh-CN"></p>
+      <p class="detail__price" id="detail-price"></p>
+      <p class="detail__story" id="detail-story"></p>
+      <dl class="specs" id="detail-specs"></dl>
+
+      <!-- Shown only for pieces that can be personalised -->
+      <label class="note" id="detail-note-field" hidden>
+        <span id="detail-note-label"></span>
+        <input type="text" id="detail-note" maxlength="80" autocomplete="off">
+      </label>
+
+      <div class="detail__actions">
+        <button type="button" class="button" id="detail-add">Add to cart</button>
+        <button type="button" class="button button--quiet" id="detail-view-cart" hidden>View cart</button>
+        <a class="button button--quiet" id="detail-enquire" href="#/">Ask about this piece</a>
+      </div>
+      <p class="detail__added" id="detail-added" role="status"></p>
+
+      <nav class="detail__nav" aria-label="Other pieces">
+        <a id="detail-prev" href="#/">Previous piece</a>
+        <a id="detail-next" href="#/">Next piece</a>
+      </nav>
+    </div>
+  </dialog>
+
+  <!-- Cart drawer -->
+  <dialog class="cart" id="cart" aria-labelledby="cart-title">
+    <div class="cart__header">
+      <h2 class="cart__title" id="cart-title">Your cart</h2>
+      <button type="button" class="cart__close" id="cart-close">Close</button>
+    </div>
+
+    <p class="cart__empty" id="cart-empty">Your cart is empty. Click a piece on the shelves to see it up close.</p>
+    <ul class="cart__lines" id="cart-lines"></ul>
+
+    <div class="cart__footer" id="cart-footer">
+      <p class="cart__total">Total <strong id="cart-total"></strong></p>
+      <a class="button" id="cart-checkout" href="#/">Send order request</a>
+      <p class="cart__note" id="cart-note"></p>
+    </div>
+  </dialog>
+
+</body>
+</html>
